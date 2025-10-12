@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { mockListings } from './Listings';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { addDays, differenceInCalendarDays } from 'date-fns';
 
 function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const listing = mockListings.find(l => l.id === Number(id));
-  const [dates, setDates] = useState({ checkin: '', checkout: '' });
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
   const [guests, setGuests] = useState(1);
   const [success, setSuccess] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -22,23 +26,32 @@ function ListingDetail() {
     'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'
   ];
 
-  const handleBook = (e) => {
+  // Demo: Move to confirmation
+  const handleContinue = (e) => {
     e.preventDefault();
-    setSuccess('');
-    if (!dates.checkin || !dates.checkout) {
-      setSuccess('Please select check-in and check-out dates.');
+    if (!startDate || !endDate) {
+      setSuccess('Please select valid dates.');
       return;
     }
-    setSuccess('Booking successful! (This is a mock booking, no backend call made.)');
-    setTimeout(() => navigate('/dashboard'), 1500);
+    navigate('/booking/confirmation', {
+      state: {
+        listing,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        guests,
+        total: calculateTotalPrice(),
+      },
+    });
   };
 
   const calculateTotalPrice = () => {
-    if (!dates.checkin || !dates.checkout) return 0;
-    const checkin = new Date(dates.checkin);
-    const checkout = new Date(dates.checkout);
-    const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
-    return nights * listing.price * guests;
+    if (!startDate || !endDate) return 0;
+    const nights = differenceInCalendarDays(endDate, startDate);
+    // Example: base price + 10% tax + 100 experience per booking
+    let subtotal = nights * listing.price * guests;
+    let experienceFee = 100;
+    let taxes = subtotal * 0.1;
+    return subtotal + taxes + experienceFee;
   };
 
   return (
@@ -200,52 +213,49 @@ function ListingDetail() {
                 </div>
               </div>
 
-              <form onSubmit={handleBook} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                    <input
-                      type="date"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      value={dates.checkin}
-                      onChange={e => setDates(d => ({ ...d, checkin: e.target.value }))}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                    <input
-                      type="date"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      value={dates.checkout}
-                      onChange={e => setDates(d => ({ ...d, checkout: e.target.value }))}
-                      min={dates.checkin || new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
+              <form className="space-y-4" onSubmit={handleContinue}>
+                {/* Date Picker */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select dates</label>
+                  <DatePicker
+                    selectsRange
+                    startDate={startDate}
+                    endDate={endDate}
+                    minDate={new Date()}
+                    onChange={(update) => {
+                      setDateRange(update);
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholderText="Select check-in and check-out"
+                  />
                 </div>
-
+                {/* Guest Selector */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
                   <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
                     value={guests}
-                    onChange={e => setGuests(parseInt(e.target.value))}
+                    onChange={e => setGuests(Number(e.target.value))}
                   >
                     {[...Array(listing.maxGuests)].map((_, i) => (
                       <option key={i + 1} value={i + 1}>{i + 1} guest{i + 1 > 1 ? 's' : ''}</option>
                     ))}
                   </select>
                 </div>
-
-                {dates.checkin && dates.checkout && (
+                {/* Price Breakdown */}
+                {startDate && endDate && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between text-sm">
-                      <span>₹{listing.price} × {Math.ceil((new Date(dates.checkout) - new Date(dates.checkin)) / (1000 * 60 * 60 * 24))} nights</span>
-                      <span>₹{calculateTotalPrice() - listing.price}</span>
+                      <span>Base ({differenceInCalendarDays(endDate, startDate)} nights x ₹{listing.price})</span>
+                      <span>₹{differenceInCalendarDays(endDate, startDate) * listing.price * guests}</span>
                     </div>
-                    <div className="flex justify-between text-sm mt-2">
-                      <span>Guests ({guests})</span>
-                      <span>₹0</span>
+                    <div className="flex justify-between text-sm mt-1">
+                      <span>Experience Fee</span>
+                      <span>₹100</span>
+                    </div>
+                    <div className="flex justify-between text-sm mt-1">
+                      <span>Taxes (10%)</span>
+                      <span>₹{Math.round(differenceInCalendarDays(endDate, startDate) * listing.price * guests * 0.1)}</span>
                     </div>
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between font-semibold">
@@ -255,12 +265,11 @@ function ListingDetail() {
                     </div>
                   </div>
                 )}
-
                 <button
                   type="submit"
                   className="w-full bg-green-700 text-white py-3 rounded-lg hover:bg-green-800 transition font-semibold"
                 >
-                  Book Now
+                  Continue to Payment (Demo)
                 </button>
 
                 {success && (

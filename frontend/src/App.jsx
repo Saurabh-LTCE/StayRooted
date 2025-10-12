@@ -10,6 +10,11 @@ import Experiences from './pages/Experiences';
 import ListingDetail from './pages/ListingDetail';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import BookingConfirmation from './pages/BookingConfirmation';
+import MyBookings from './pages/MyBookings';
+import HostDashboard from './pages/HostDashboard';
+import AddListing from './pages/AddListing';
+import EditListing from './pages/EditListing';
 
 function App() {
   return (
@@ -21,12 +26,16 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<HostDashboard />} />
             <Route path="/listings" element={<Listings />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/listings/:id" element={<ListingDetail />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
+            <Route path="/add-listing" element={<AddListing />} />
+            <Route path="/edit-listing/:id" element={<EditListing />} />
           </Routes>
         </main>
       </div>
