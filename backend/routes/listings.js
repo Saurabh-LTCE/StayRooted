@@ -1,98 +1,223 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
 const Listing = require('../models/Listing');
+const { auth, authorize } = require('../middleware/auth');
+const { validateListing } = require('../middleware/validation');
 const router = express.Router();
 
 // @route   GET /api/listings
-// @desc    Get all listings
+// @desc    Get all listings with search and filter
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const listings = await Listing.find().populate('host', 'name email');
-    res.json(listings);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    const { 
+      search, 
+      city, 
+      state, 
+      country, 
+      minPrice, 
+      maxPrice, 
+      propertyType, 
+      maxGuests,
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    // Build filter object
+    const filter = { isAvailable: true };
+
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    if (city) filter['location.city'] = new RegExp(city, 'i');
+    if (state) filter['location.state'] = new RegExp(state, 'i');
+    if (country) filter['location.country'] = new RegExp(country, 'i');
+    if (propertyType) filter.propertyType = propertyType;
+    if (maxGuests) filter.maxGuests = { $gte: parseInt(maxGuests) };
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseInt(minPrice);
+      if (maxPrice) filter.price.$lte = parseInt(maxPrice);
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const listings = await Listing.find(filter)
+      .populate('host', 'name email avatar')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Listing.countDocuments(filter);
+
+    res.json({
+      success: true,
+      count: listings.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      listings
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
+  }
+});
+
+// @route   GET /api/listings/:id
+// @desc    Get single listing
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id)
+      .populate('host', 'name email avatar bio phone');
+
+    if (!listing) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Listing not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      listing
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
   }
 });
 
 // @route   POST /api/listings
-// @desc    Create a new listing
-// @access  Public
-router.post(
-  [
-    body('title').notEmpty().withMessage('Title is required'),
-    body('description').notEmpty().withMessage('Description is required'),
-    body('location').notEmpty().withMessage('Location is required'),
-    body('price').isNumeric().withMessage('Price must be a number'),
-    body('host').notEmpty().withMessage('Host is required')
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    try {
-      const listing = new Listing(req.body);
-      await listing.save();
-      res.status(201).json({ message: 'Listing created', listing });
-    } catch (err) {
-      res.status(500).json({ error: 'Server error' });
-    }
-  }
-);
-
-// @route   GET /api/listings/:id
-// @desc    Get listing by ID
-// @access  Public
-router.get('/:id', async (req, res) => {
+// @desc    Create new listing
+// @access  Private/Host
+router.post('/', auth, authorize('host', 'admin'), validateListing, async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id).populate('host', 'name email');
-    if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    res.json(listing);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    const listingData = {
+      ...req.body,
+      host: req.user._id
+    };
+
+    const listing = new Listing(listingData);
+    await listing.save();
+
+    await listing.populate('host', 'name email avatar');
+
+    res.status(201).json({
+      success: true,
+      message: 'Listing created successfully',
+      listing
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
   }
 });
 
 // @route   PUT /api/listings/:id
-// @desc    Update listing by ID
-// @access  Public
-router.put(
-  [
-    body('title').optional().notEmpty().withMessage('Title cannot be empty'),
-    body('description').optional().notEmpty().withMessage('Description cannot be empty'),
-    body('location').optional().notEmpty().withMessage('Location cannot be empty'),
-    body('price').optional().isNumeric().withMessage('Price must be a number')
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+// @desc    Update listing
+// @access  Private/Host or Admin
+router.put('/:id', auth, validateListing, async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Listing not found' 
+      });
     }
-    try {
-      const listing = await Listing.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true, runValidators: true }
-      );
-      if (!listing) return res.status(404).json({ error: 'Listing not found' });
-      res.json(listing);
-    } catch (err) {
-      res.status(500).json({ error: 'Server error' });
+
+    // Check if user owns the listing or is admin
+    if (listing.host.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Not authorized to update this listing' 
+      });
     }
+
+    const updatedListing = await Listing.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).populate('host', 'name email avatar');
+
+    res.json({
+      success: true,
+      message: 'Listing updated successfully',
+      listing: updatedListing
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
   }
-);
+});
 
 // @route   DELETE /api/listings/:id
-// @desc    Delete listing by ID
-// @access  Public
-router.delete('/:id', async (req, res) => {
+// @desc    Delete listing
+// @access  Private/Host or Admin
+router.delete('/:id', auth, async (req, res) => {
   try {
-    const listing = await Listing.findByIdAndDelete(req.params.id);
-    if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    res.json({ message: 'Listing deleted' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Listing not found' 
+      });
+    }
+
+    // Check if user owns the listing or is admin
+    if (listing.host.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Not authorized to delete this listing' 
+      });
+    }
+
+    await Listing.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Listing deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
+  }
+});
+
+// @route   GET /api/listings/host/my-listings
+// @desc    Get current host's listings
+// @access  Private/Host
+router.get('/host/my-listings', auth, authorize('host', 'admin'), async (req, res) => {
+  try {
+    const listings = await Listing.find({ host: req.user._id })
+      .populate('host', 'name email avatar')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: listings.length,
+      listings
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    });
   }
 });
 

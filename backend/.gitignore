@@ -1,16 +1,3 @@
- // Server
-PORT=5000
-
-// MongoDB Atlas Connection String
-MONGO_URI=mongodb+srv://shivsai13052004_db_user:uyxt6FzRbHlVOkLd@cluster0.hwydc8c.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-
-// JWT Secret (use any random long string)
-JWT_SECRET=supersecretjwtkey123456
-
-// (Optional) Email service (for Nodemailer in Prompt 5)
-EMAIL_USER=shivsai13052004@gmail.com
-EMAIL_PASS=Shivsai@MSD07
-
-// (Optional) Cloudinary (if you enable image uploads in Prompt 6)
-
-CLOUDINARY_URL=cloudinary://457899918344827:-cOJTVXZos_3OpOcRnK_M8yxzbo@dq4wgd9jh
+.env
+node_modules/
+*.log
