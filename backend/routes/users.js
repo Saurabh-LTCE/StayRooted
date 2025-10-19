@@ -6,11 +6,11 @@ const { validateUser } = require('../middleware/validation');
 const router = express.Router();
 
 // @route   POST /api/users/register
-// @desc    Register a new user
+// @desc    Register a new traveler
 // @access  Public
 router.post('/register', validateUser, async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -21,8 +21,8 @@ router.post('/register', validateUser, async (req, res) => {
       });
     }
 
-    // Create new user
-    const user = new User({ name, email, password, role });
+    // Create new traveler user (force traveler role)
+    const user = new User({ name, email, password, role: 'traveler' });
     await user.save();
 
     // Generate JWT token
@@ -35,6 +35,52 @@ router.post('/register', validateUser, async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error during registration' 
+    });
+  }
+});
+
+// @route   POST /api/users/register-host
+// @desc    Register a new host
+// @access  Public
+router.post('/register-host', validateUser, async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User already exists with this email' 
+      });
+    }
+
+    // Create new host user (force host role)
+    const user = new User({ name, email, password, role: 'host' });
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Host registered successfully',
       token,
       user: {
         id: user._id,
