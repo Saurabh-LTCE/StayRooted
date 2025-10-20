@@ -6,9 +6,11 @@ function Navbar() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem('sr_token');
+  const role = localStorage.getItem('sr_role');
 
   const handleLogout = () => {
     localStorage.removeItem('sr_token');
+    localStorage.removeItem('sr_role');
     setDropdown(false);
     setMobileMenu(false);
     navigate('/');
@@ -23,7 +25,8 @@ function Navbar() {
           <Link to="/listings" className="hover:underline">Listings</Link>
           <Link to="/discover" className="hover:underline">Discover</Link>
           <Link to="/experiences" className="hover:underline">Experiences</Link>
-          {isLoggedIn && <Link to="/dashboard" className="hover:underline">Dashboard</Link>}
+          {isLoggedIn && role === 'host' && <Link to="/dashboard/host" className="hover:underline">Host</Link>}
+          {isLoggedIn && role !== 'host' && <Link to="/dashboard/traveler" className="hover:underline">Traveler</Link>}
         </div>
         <div className="relative hidden md:block">
           {isLoggedIn ? (
@@ -36,8 +39,8 @@ function Navbar() {
             </button>
           ) : (
             <div className="space-x-2">
-              <Link to="/login" className="bg-white text-green-800 px-3 py-1 rounded hover:bg-green-100">Login</Link>
-              <Link to="/register" className="bg-green-600 px-3 py-1 rounded hover:bg-green-700">Register</Link>
+              <Link to="/role-selection" className="bg-white text-green-800 px-3 py-1 rounded hover:bg-green-100">Login</Link>
+              <Link to="/role-selection" className="bg-green-600 px-3 py-1 rounded hover:bg-green-700">Register</Link>
             </div>
           )}
           {dropdown && (
@@ -69,8 +72,8 @@ function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/login" className="block py-2" onClick={() => setMobileMenu(false)}>Login</Link>
-              <Link to="/register" className="block py-2" onClick={() => setMobileMenu(false)}>Register</Link>
+              <Link to="/role-selection" className="block py-2" onClick={() => setMobileMenu(false)}>Login</Link>
+              <Link to="/role-selection" className="block py-2" onClick={() => setMobileMenu(false)}>Register</Link>
             </>
           )}
         </div>

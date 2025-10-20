@@ -33,6 +33,8 @@ const listingsRoute = require('./routes/listings');
 const bookingsRoute = require('./routes/bookings');
 const experiencesRoute = require('./routes/experiences');
 const reviewsRoute = require('./routes/reviews');
+const travelerDashboardRoute = require('./routes/travelerDashboard');
+const hostRoutes = require('./routes/hostRoutes');
 
 // Import error handler middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -43,6 +45,8 @@ app.use('/api/listings', listingsRoute);
 app.use('/api/bookings', bookingsRoute);
 app.use('/api/experiences', experiencesRoute);
 app.use('/api/reviews', reviewsRoute);
+app.use('/api/dashboard/traveler', travelerDashboardRoute);
+app.use('/api/host', hostRoutes);
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -83,7 +87,9 @@ app.get('/', (req, res) => {
       listings: '/api/listings',
       bookings: '/api/bookings',
       experiences: '/api/experiences',
-      reviews: '/api/reviews'
+      reviews: '/api/reviews',
+      travelerDashboard: '/api/dashboard/traveler'
+      ,host: '/api/host'
     }
   });
 });

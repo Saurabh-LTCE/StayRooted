@@ -10,7 +10,7 @@ const router = express.Router();
 // @access  Public
 router.post('/register', validateUser, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, adminCode } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -21,8 +21,16 @@ router.post('/register', validateUser, async (req, res) => {
       });
     }
 
-    // Create new traveler user (force traveler role)
-    const user = new User({ name, email, password, role: 'traveler' });
+    // Determine role with admin gate
+    let finalRole = role || 'traveler';
+    if (finalRole === 'admin') {
+      if (adminCode !== 'ADMIN2024') {
+        return res.status(403).json({ success: false, error: 'Invalid admin code' });
+      }
+    }
+
+    // Create user with chosen role
+    const user = new User({ name, email, password, role: finalRole });
     await user.save();
 
     // Generate JWT token
