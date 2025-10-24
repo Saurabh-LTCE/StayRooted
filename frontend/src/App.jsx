@@ -20,6 +20,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AddListing from './pages/AddListing';
 import EditListing from './pages/EditListing';
 import RoleSelection from './pages/RoleSelection';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
+import AdminListings from './pages/AdminListings';
+import AdminBookings from './pages/AdminBookings';
 
 function App() {
   return (
@@ -36,6 +40,12 @@ function App() {
             <Route path="/dashboard/traveler" element={<ProtectedRoute allowRoles={["traveler", "admin"]}><TravelerDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/traveler/bookings" element={<ProtectedRoute allowRoles={["traveler", "admin"]}><TravelerBookings /></ProtectedRoute>} />
             <Route path="/dashboard/traveler/profile" element={<ProtectedRoute allowRoles={["traveler", "admin"]}><TravelerProfile /></ProtectedRoute>} />
+            {/* ADMIN DASHBOARD ROUTES */}
+            <Route path="/dashboard/admin" element={<ProtectedRoute allowRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/users" element={<ProtectedRoute allowRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/listings" element={<ProtectedRoute allowRoles={["admin"]}><AdminListings /></ProtectedRoute>} />
+            <Route path="/dashboard/admin/bookings" element={<ProtectedRoute allowRoles={["admin"]}><AdminBookings /></ProtectedRoute>} />
+            {/* Other routes */}
             <Route path="/listings" element={<Listings />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/experiences" element={<Experiences />} />
