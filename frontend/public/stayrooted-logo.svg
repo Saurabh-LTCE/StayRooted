@@ -1,0 +1,17 @@
+<svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <!-- Map pin shape -->
+    <path d="M24 5C15.7157 5 9 11.3692 9 19.2274C9 25.2347 20.3206 41.1113 23.3015 45.2162C23.6763 45.7382 24.3237 45.7382 24.6985 45.2162C27.6794 41.1113 39 25.2347 39 19.2274C39 11.3692 32.2843 5 24 5Z" fill="#16A34A"/>
+    <!-- White circle in the pin -->
+    <circle cx="24" cy="19" r="7.5" fill="#fff"/>
+    <!-- Rooted tree: trunk -->
+    <rect x="22.5" y="15.5" width="3" height="8" rx="1.5" fill="#4B5563"/>
+    <!-- Rooted tree: roots -->
+    <path d="M24 24 V27 M24 27 Q25 29 26 28" stroke="#166534" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M24 27 Q23 29 22 28" stroke="#166534" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Canopy: leaves -->
+    <ellipse cx="24" cy="18" rx="3.5" ry="2" fill="#22C55E"/>
+    <ellipse cx="21.5" cy="19.5" rx="1.5" ry="1" fill="#16A34A"/>
+    <ellipse cx="26.5" cy="19.5" rx="1.5" ry="1" fill="#16A34A"/>
+  </g>
+</svg>
